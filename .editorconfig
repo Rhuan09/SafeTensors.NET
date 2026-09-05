@@ -1,0 +1,30 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = crlf
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+
+[*.{yml,yaml,json,md}]
+indent_size = 2
+
+[*.{csproj,props,targets,slnx}]
+indent_size = 2
+
+[*.cs]
+csharp_new_line_before_open_brace = all
+csharp_indent_case_contents = true
+csharp_style_namespace_declarations = block_scoped:silent
+dotnet_sort_system_directives_first = true
+dotnet_style_qualification_for_field = false:warning
+csharp_prefer_braces = true:silent
+
+# The public surface is documented; missing XML docs on public members is an error
+# in Release so the NuGet package never ships undocumented API.
+dotnet_diagnostic.CS1591.severity = warning
+
+# Unused parameters on interface implementations and P/Invoke shims are normal here.
+dotnet_diagnostic.IDE0060.severity = none

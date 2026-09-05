@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/SafeTensors.Benchmarks/SafeTensors.Benchmarks.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/SafeTensors.Sample/SafeTensors.Sample.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/SafeTensors.Native/SafeTensors.Native.csproj" />
+    <Project Path="src/SafeTensors.NET/SafeTensors.NET.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SafeTensors.Tests/SafeTensors.Tests.csproj" />
+  </Folder>
+</Solution>
