@@ -1,5 +1,10 @@
 # SafeTensors.NET
 
+[![ci](https://github.com/Rhuan09/SafeTensors.NET/actions/workflows/ci.yml/badge.svg)](https://github.com/Rhuan09/SafeTensors.NET/actions/workflows/ci.yml)
+[![NuGet](https://img.shields.io/nuget/v/SafeTensors.NET.svg)](https://www.nuget.org/packages/SafeTensors.NET)
+[![Downloads](https://img.shields.io/nuget/dt/SafeTensors.NET.svg)](https://www.nuget.org/packages/SafeTensors.NET)
+[![License: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
+
 **Read and write SafeTensors checkpoints from .NET without copying them into managed memory
 first — and without trusting the file that arrived over the network.**
 
@@ -23,6 +28,26 @@ dotnet add package SafeTensors.NET
 
 Targets `netstandard2.0`, `net8.0` and `net10.0`. The netstandard2.0 build carries
 polyfills so .NET Framework 4.6.1+ and Unity get the same API, including F16 support.
+On `net8.0` and `net10.0` the package has no dependencies at all, and is marked
+trim-safe and Native AOT compatible.
+
+<details>
+<summary>Installing from GitHub Packages instead</summary>
+
+Every release also goes to this repository's GitHub Packages feed. That feed requires
+authentication even for public packages — a GitHub personal access token with `read:packages`
+— so nuget.org is the easier route unless you are already authenticating to GitHub for other
+packages.
+
+```bash
+dotnet nuget add source https://nuget.pkg.github.com/Rhuan09/index.json \
+  --name github-rhuan09 \
+  --username <your-github-username> \
+  --password <a-PAT-with-read:packages> \
+  --store-password-in-clear-text
+```
+
+</details>
 
 ## Reading
 

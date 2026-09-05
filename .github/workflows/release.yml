@@ -7,37 +7,58 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write   # create the GitHub Release
+      packages: write   # push to GitHub Packages with GITHUB_TOKEN
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0   # SourceLink needs the history to resolve commits
+
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
 
+      # Fail before anything is published rather than half way through, so a missing
+      # secret can never leave the package on one feed and not the other.
+      - name: Check for the NuGet API key
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          if [ -z "$NUGET_API_KEY" ]; then
+            echo "::error::NUGET_API_KEY is not set. Add it under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
       - run: dotnet test --configuration Release
 
-      # The tag is the source of truth for the version; the csproj default is for local builds.
+      # The tag is the source of truth for the version; the VersionPrefix in
+      # Directory.Build.props only covers local builds.
       - name: Pack
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
+          echo "Packing $VERSION"
           dotnet pack src/SafeTensors.NET \
             --configuration Release \
             -p:Version="$VERSION" \
             --output ./artifacts
 
-      - name: Push to NuGet
-        env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+      # GitHub Packages first: it is the feed this workflow can always reach, so a
+      # failure here is a pipeline problem rather than a credential problem.
+      # --no-symbols because the feed does not accept snupkg.
+      - name: Push to GitHub Packages
         run: |
-          if [ -z "$NUGET_API_KEY" ]; then
-            echo "NUGET_API_KEY is not set; skipping push." >&2
-            exit 1
-          fi
+          dotnet nuget push ./artifacts/*.nupkg \
+            --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json \
+            --api-key ${{ secrets.GITHUB_TOKEN }} \
+            --no-symbols \
+            --skip-duplicate
+
+      # nuget.org picks up the snupkg alongside the nupkg automatically.
+      - name: Push to nuget.org
+        run: |
           dotnet nuget push ./artifacts/*.nupkg \
             --source https://api.nuget.org/v3/index.json \
-            --api-key "$NUGET_API_KEY" \
+            --api-key "${{ secrets.NUGET_API_KEY }}" \
             --skip-duplicate
 
       - uses: softprops/action-gh-release@v2
