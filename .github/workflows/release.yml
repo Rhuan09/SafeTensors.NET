@@ -68,3 +68,7 @@ jobs:
         with:
           files: ./artifacts/*.*nupkg
           generate_release_notes: true
+          # A SemVer prerelease has a hyphen in it, and nothing else does. Without this
+          # the action defaults to false and a preview shows up as "Latest release" on
+          # the repository page, which is exactly the wrong thing to point people at.
+          prerelease: ${{ contains(github.ref_name, '-') }}
