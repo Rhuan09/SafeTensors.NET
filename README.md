@@ -5,8 +5,16 @@
 [![Downloads](https://img.shields.io/nuget/dt/SafeTensors.NET.svg)](https://www.nuget.org/packages/SafeTensors.NET)
 [![License: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
 
-**Read and write SafeTensors checkpoints from .NET without copying them into managed memory
-first — and without trusting the file that arrived over the network.**
+**Read and write SafeTensors checkpoints from .NET without installing a deep learning
+runtime to do it — and without trusting the file that arrived over the network.**
+
+The package is 150 KB with no dependencies on `net8.0` or `net10.0`, nothing native, and
+nothing to configure. It does one thing: it gets you the bytes of a tensor, correctly.
+
+That matters when reading the weights is the whole job rather than the first step of
+inference — inspecting a checkpoint, validating one in CI, converting between formats,
+merging LoRA adapters, or shipping something into Unity where a native ML stack is not on
+the table.
 
 A 40 GB checkpoint opens in the time it takes to parse its header. Tensors come back as
 `ReadOnlySpan<T>` pointing straight at the mapped pages, so reading a weight matrix costs
