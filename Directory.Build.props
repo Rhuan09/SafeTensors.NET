@@ -29,7 +29,7 @@
     <VersionPrefix>1.0.0</VersionPrefix>
     <Authors>Rhuan Alves Inocencio</Authors>
     <Company>SafeTensors.NET</Company>
-    <Copyright>Copyright (c) 2026 SafeTensors.NET contributors</Copyright>
+    <Copyright>Copyright (c) 2026 Rhuan Alves Inocencio and SafeTensors.NET contributors</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/Rhuan09/SafeTensors.NET</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Rhuan09/SafeTensors.NET</RepositoryUrl>
