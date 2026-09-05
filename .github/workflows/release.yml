@@ -9,6 +9,7 @@ jobs:
     permissions:
       contents: write   # create the GitHub Release
       packages: write   # push to GitHub Packages with GITHUB_TOKEN
+      id-token: write   # request the OIDC token nuget.org trades for a short-lived key
     steps:
       - uses: actions/checkout@v4
         with:
@@ -17,17 +18,6 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-
-      # Fail before anything is published rather than half way through, so a missing
-      # secret can never leave the package on one feed and not the other.
-      - name: Check for the NuGet API key
-        env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
-        run: |
-          if [ -z "$NUGET_API_KEY" ]; then
-            echo "::error::NUGET_API_KEY is not set. Add it under Settings > Secrets and variables > Actions."
-            exit 1
-          fi
 
       - run: dotnet test --configuration Release
 
@@ -42,9 +32,22 @@ jobs:
             -p:Version="$VERSION" \
             --output ./artifacts
 
-      # GitHub Packages first: it is the feed this workflow can always reach, so a
-      # failure here is a pipeline problem rather than a credential problem.
-      # --no-symbols because the feed does not accept snupkg.
+      # Trusted Publishing: nuget.org validates this job's OIDC token against the policy
+      # registered for this repository and workflow file, then issues an API key valid for
+      # one hour. There is no long-lived secret anywhere in this pipeline.
+      #
+      # This runs before either push on purpose. If the policy is missing or does not match,
+      # the run fails here — with nothing yet published to either feed, rather than to one
+      # and not the other.
+      - name: Exchange the OIDC token for a NuGet key
+        uses: NuGet/login@v1
+        id: nuget-login
+        with:
+          # The nuget.org profile name, not an email address. It is public on every package
+          # page, so it is not kept as a secret.
+          user: rhuan09
+
+      # --no-symbols because the GitHub Packages feed does not accept snupkg.
       - name: Push to GitHub Packages
         run: |
           dotnet nuget push ./artifacts/*.nupkg \
@@ -58,7 +61,7 @@ jobs:
         run: |
           dotnet nuget push ./artifacts/*.nupkg \
             --source https://api.nuget.org/v3/index.json \
-            --api-key "${{ secrets.NUGET_API_KEY }}" \
+            --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} \
             --skip-duplicate
 
       - uses: softprops/action-gh-release@v2
