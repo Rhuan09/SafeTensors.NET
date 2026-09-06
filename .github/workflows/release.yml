@@ -4,7 +4,75 @@ on:
     tags: ['v*']
 
 jobs:
+  # The C ABI is only useful to someone who can download it. Building it here, before
+  # anything is published, also means a tag that cannot produce native binaries does not
+  # produce a NuGet package either: a release is all of it or none of it.
+  native:
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+            ext: .dll
+            asset: safetensors-win-x64.dll
+          - os: ubuntu-latest
+            rid: linux-x64
+            ext: .so
+            asset: safetensors-linux-x64.so
+          - os: macos-latest
+            rid: osx-arm64
+            ext: .dylib
+            asset: safetensors-osx-arm64.dylib
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install the native toolchain
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y clang zlib1g-dev
+
+      # Native AOT cannot cross-compile, so each binary is built on its own platform.
+      # That is also why the matrix is exactly the set of platforms with a runner:
+      # anything else would mean shipping a binary nobody built or tested.
+      - name: Publish the shared library
+        shell: bash
+        run: |
+          dotnet publish src/SafeTensors.Native \
+            --configuration Release \
+            -r ${{ matrix.rid }} \
+            -p:Version="${GITHUB_REF_NAME#v}" \
+            --output ./native
+
+      # Found by extension rather than by name. Whether the toolchain emits
+      # safetensors.so or libsafetensors.so is the platform's business and has changed
+      # between SDK versions; asserting exactly one match catches a surprise here rather
+      # than three steps later as a missing release asset.
+      - name: Name the binary for its platform
+        shell: bash
+        run: |
+          ls -l ./native
+          matches=$(find ./native -maxdepth 1 -type f -name "*${{ matrix.ext }}")
+          count=$(printf '%s' "$matches" | grep -c . || true)
+          if [ "$count" != "1" ]; then
+            echo "::error::expected exactly one *${{ matrix.ext }} in ./native, found $count"
+            exit 1
+          fi
+          cp "$matches" "./native/${{ matrix.asset }}"
+          ls -l "./native/${{ matrix.asset }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.rid }}
+          path: ./native/${{ matrix.asset }}
+          if-no-files-found: error
+
   publish:
+    needs: native
     runs-on: ubuntu-latest
     permissions:
       contents: write   # create the GitHub Release
@@ -31,6 +99,18 @@ jobs:
             --configuration Release \
             -p:Version="$VERSION" \
             --output ./artifacts
+
+      - name: Collect the native binaries
+        uses: actions/download-artifact@v4
+        with:
+          pattern: native-*
+          path: ./artifacts
+          merge-multiple: true
+
+      # The header ships with the binaries. It is the only way to call them, and a
+      # consumer should not have to go find the matching revision in the repository.
+      - name: Include the C header
+        run: cp src/SafeTensors.Native/safetensors.h ./artifacts/
 
       # Trusted Publishing: nuget.org validates this job's OIDC token against the policy
       # registered for this repository and workflow file, then issues an API key valid for
@@ -66,7 +146,15 @@ jobs:
 
       - uses: softprops/action-gh-release@v2
         with:
-          files: ./artifacts/*.*nupkg
+          files: |
+            ./artifacts/*.*nupkg
+            ./artifacts/safetensors-win-x64.dll
+            ./artifacts/safetensors-linux-x64.so
+            ./artifacts/safetensors-osx-arm64.dylib
+            ./artifacts/safetensors.h
+          # A missing binary should be loud. A release that silently lacks one platform
+          # is worse than a run that fails.
+          fail_on_unmatched_files: true
           generate_release_notes: true
           # A SemVer prerelease has a hyphen in it, and nothing else does. Without this
           # the action defaults to false and a preview shows up as "Latest release" on
