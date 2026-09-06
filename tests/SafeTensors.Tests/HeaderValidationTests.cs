@@ -233,24 +233,38 @@ public class HeaderValidationTests
     [Fact]
     public void Rejects_a_file_with_duplicate_tensor_keys()
     {
-        string path = Path.Combine(AppContext.BaseDirectory, "TestFiles", "duplicate_keys_in_header.safetensors");
+        Assert.Throws<SafeTensorCorruptHeaderException>(() => SafeTensorFile.Open(File("malformed_duplicate_keys")));
+    }
 
-        Assert.Throws<SafeTensorCorruptHeaderException>(() => SafeTensorFile.Open(path));
+    [Fact]
+    public void Rejects_a_file_whose_tensors_overlap_on_disk()
+    {
+        // The same check as the in-memory case, run against a real file so the
+        // memory-mapped path is exercised too.
+        Assert.Throws<SafeTensorValidationException>(
+            () => SafeTensorFile.Open(File("malformed_overlapping_tensors")));
+    }
+
+    [Fact]
+    public void Rejects_a_file_whose_size_disagrees_with_its_shape()
+    {
+        Assert.Throws<SafeTensorValidationException>(
+            () => SafeTensorFile.Open(File("malformed_size_mismatch")));
     }
 
     [Fact]
     public void Rejects_an_empty_file()
     {
-        string path = Path.Combine(AppContext.BaseDirectory, "TestFiles", "zero_len_file.safetensors");
-
-        Assert.Throws<SafeTensorCorruptHeaderException>(() => SafeTensorFile.Open(path));
+        Assert.Throws<SafeTensorCorruptHeaderException>(() => SafeTensorFile.Open(File("malformed_empty")));
     }
 
     [Fact]
     public void Rejects_a_header_length_that_exceeds_the_file()
     {
-        string path = Path.Combine(AppContext.BaseDirectory, "TestFiles", "header_size_too_big.safetensors");
-
-        Assert.Throws<SafeTensorCorruptHeaderException>(() => SafeTensorFile.Open(path));
+        Assert.Throws<SafeTensorCorruptHeaderException>(
+            () => SafeTensorFile.Open(File("malformed_header_too_large")));
     }
+
+    private static string File(string name)
+        => Path.Combine(AppContext.BaseDirectory, "TestFiles", name + ".safetensors");
 }
