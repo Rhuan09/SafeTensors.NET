@@ -298,7 +298,8 @@ to tensor count rather than tensor size.
 ## Status
 
 The reader, writer, sharded loader and native ABI all work and are covered by the test
-suite, which includes files produced by the reference PyTorch implementation.
+suite, which reads files produced by the reference implementation across all thirteen
+dtypes it can express, BF16 included.
 
 Not there yet:
 
