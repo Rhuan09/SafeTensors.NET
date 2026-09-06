@@ -37,12 +37,26 @@ jobs:
           path: ./artifacts/*.*nupkg
 
   native:
-    # Native AOT is the one thing a normal build does not prove, so it gets its own job.
-    runs-on: ubuntu-latest
+    # Native AOT is the one thing a normal build does not prove, and it cannot
+    # cross-compile, so every platform we ship a binary for is built on its own runner.
+    # This matrix mirrors release.yml deliberately: a toolchain break on macOS should
+    # fail a pull request, not a tag.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+          - os: ubuntu-latest
+            rid: linux-x64
+          - os: macos-latest
+            rid: osx-arm64
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-      - run: sudo apt-get update && sudo apt-get install -y clang zlib1g-dev
-      - run: dotnet publish src/SafeTensors.Native --configuration Release -r linux-x64
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y clang zlib1g-dev
+      - run: dotnet publish src/SafeTensors.Native --configuration Release -r ${{ matrix.rid }}

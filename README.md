@@ -240,8 +240,18 @@ through the explicit-dtype overload.
 
 ## Native ABI
 
-`src/SafeTensors.Native` publishes a Native AOT shared library with a C ABI, so a consumer
-in C, C++, Rust or Python gets the weights at their address in the page cache:
+Every release ships a Native AOT shared library with a C ABI, so a consumer in C, C++,
+Rust or Python gets the weights at their address in the page cache — **with no .NET
+runtime installed on the machine**.
+
+Download from [the releases page](https://github.com/Rhuan09/SafeTensors.NET/releases):
+`safetensors-win-x64.dll`, `safetensors-linux-x64.so`, `safetensors-osx-arm64.dylib`, and
+the `safetensors.h` they were built against. For any other platform, build it yourself —
+Native AOT cannot cross-compile, so only the three with a CI runner are prebuilt:
+
+```bash
+dotnet publish src/SafeTensors.Native -c Release -r linux-arm64
+```
 
 ```c
 #include "safetensors.h"
@@ -261,10 +271,6 @@ safetensors_close(model);                    /* weights is invalid after this */
 ```
 
 `safetensors.h` states which returns are owned and which are borrowed.
-
-```bash
-dotnet publish src/SafeTensors.Native -c Release -r win-x64
-```
 
 ## Benchmarks
 
